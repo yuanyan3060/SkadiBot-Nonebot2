@@ -1,3 +1,4 @@
+from time import pthread_getcpuclockid
 import httpx
 from tortoise import Tortoise
 from nonebot import get_driver, require
@@ -9,7 +10,7 @@ from lxml import etree
 driver = get_driver()
 Downloader = require("arknight_resources").Downloader
 scheduler = require("nonebot_plugin_apscheduler").scheduler
-
+from nonebot_plugin_apscheduler import scheduler
 @driver.on_startup
 async def init():
     from . import models
@@ -19,6 +20,8 @@ async def init():
     )
     await Tortoise.generate_schemas()
     await Pool.spider_pool()
+    scheduler.add_job(Pool.spider_pool, "cron", minute=20)
+    Downloader.register_observer(Pool)
 driver.on_shutdown(Tortoise.close_connections)
 
 
@@ -100,6 +103,7 @@ class Pool:
 
     @classmethod
     async def spider_pool(cls):
+        print("开始爬取")
         url = "https://prts.wiki/w/%E5%8D%A1%E6%B1%A0%E4%B8%80%E8%A7%88/%E9%99%90%E6%97%B6%E5%AF%BB%E8%AE%BF"
         pools:List[PoolModel] = []
         async with httpx.AsyncClient() as client:
@@ -144,7 +148,4 @@ class Pool:
         if "gamedata/excel/gacha_table.json" in update_file:
             await cls.spider_pool()
 
-Downloader.register_observer(Pool)
-@scheduler.scheduled_job("cron", minute=20)
-async def auto_update():
-    await Pool.spider_pool()
+

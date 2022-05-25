@@ -17,6 +17,7 @@ async def loadImage(path: path_like) -> Image.Image:
         temp = await fp.read()
         buffer.write(temp)
         return Image.open(buffer)
+    raise Exception(f"Image Not Found")
 
 
 def saveImage(img: Image.Image) -> BytesIO:
@@ -57,6 +58,10 @@ def get_text_color(text: str) -> List[ColorText]:
             g = int(s[11:13], 16)
             b = int(s[13:15], 16)
             color_stack.append((r, g, b))
+    if len(color_stack) > 0:
+        color = color_stack[-1]
+    else:
+        color = (0, 0, 0)
     if start != len(text):
         pos_color.append(((start, len(text)), color))
     return [ColorText(text[pos[0]:pos[1]], color) for pos, color in pos_color]

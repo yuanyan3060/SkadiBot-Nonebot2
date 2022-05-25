@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import json
 from typing import Any, Dict, List, Optional
 import pathlib
-from nonebot import get_driver, require, export
+from nonebot import get_driver, require
 import aiofiles
 
 base_path = pathlib.Path("resource/arknight_resources")
@@ -56,6 +56,11 @@ class CharaterTable:
             if character.name == name:
                 return character
         return None
+    
+    @classmethod
+    def get_from_rarity(cls, rarity:int)->List[Character]:
+        return [i for i in cls.character_list if i.rarity==rarity]
+
 
 
 @driver.on_startup

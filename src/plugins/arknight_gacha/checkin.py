@@ -1,6 +1,4 @@
 from nonebot import on_command
-from nonebot.matcher import Matcher
-from nonebot.params import Arg, CommandArg, ArgPlainText
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, Message
 
 from .database import UserBox
@@ -27,18 +25,18 @@ async def Draw(origin_tickets: int, gain_tickets: int, favor: int) -> Image.Imag
     template = await loadImage("resource/arknight_gacha/checkin/template.png")
     draw = ImageDraw.Draw(template)
     text=f"寻访凭证:{origin_tickets}"
-    draw.text(xy=(20, 650),
+    draw.text(xy=(10, 325),
               text=text,
               font=SarasaFont,
               fill=(0, 0, 0, 255)
               )
     w, h = SarasaFont.getsize(text)
-    draw.text(xy=(20+w, 650),
+    draw.text(xy=(10+w, 325),
               text=f"+{gain_tickets}",
               font=SarasaFont,
               fill=(0, 255, 0, 255)
               )
-    draw.text(xy=(20, 650+h),
+    draw.text(xy=(10, 325+h),
               text=f"好感度:{favor/max_favor:.2%}",
               font=SarasaFont,
               fill=(0, 0, 0, 255)

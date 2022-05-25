@@ -24,7 +24,7 @@ class Observer(Protocol):
 
 
 class Downloader:
-    base_url = "https://vivien8261.gitee.io/arknights-bot-resource/{}"
+    base_url = "https://raw.fastgit.org/yuanyan3060/Arknights-Bot-Resource/main/{}"
     base_path = pathlib.Path("resource/arknight_resources")
     observers: List[Observer] = []
 
@@ -93,6 +93,7 @@ class Downloader:
         """
         async with httpx.AsyncClient() as client:
             url = cls.base_url.format("file_dict.json")
+            print(url)
             rep = await client.get(url, timeout=100)
             return rep.json()
 

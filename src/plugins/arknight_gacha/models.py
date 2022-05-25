@@ -1,5 +1,5 @@
 from tortoise.models import Model
-from tortoise.fields.data import TextField, CharField, DatetimeField, BigIntField, IntField, DatetimeField, BooleanField, JSONField
+from tortoise.fields.data import CharField, DatetimeField, BigIntField, IntField, DatetimeField, BooleanField, JSONField
 from tortoise.fields import ReverseRelation, ForeignKeyRelation, ForeignKeyField
 
 
@@ -13,7 +13,7 @@ class OperatorModel(Model):
 
 
 class PoolModel(Model):
-    name = CharField(pk=True, unique=True, index=True, max_length=150)
+    name = CharField(max_length=150)
     pickup_6 = JSONField()
     pickup_5 = JSONField()
     pickup_4 = JSONField()
@@ -25,4 +25,4 @@ class UserBoxModel(Model):
     ten_gacha_tickets = IntField()
     last_checkin_time = DatetimeField()
     favor = IntField()
-    pool_name = TextField()
+    no6_times = IntField()

@@ -1,18 +1,14 @@
-from genericpath import exists
 import httpx
-from tortoise.models import Model
-from tortoise import fields
-from tortoise import Tortoise, run_async
-from nonebot import get_driver, require, export
+from tortoise import Tortoise
+from nonebot import get_driver, require
 from .models import PoolModel, UserBoxModel, OperatorModel
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from .config import checkin_tickets, checkin_favor, max_favor
-from dataclasses import dataclass
 from lxml import etree
 driver = get_driver()
 Downloader = require("arknight_resources").Downloader
-
+scheduler = require("nonebot_plugin_apscheduler").scheduler
 
 @driver.on_startup
 async def init():
@@ -35,7 +31,7 @@ class UserBox:
                 "ten_gacha_tickets": 30,
                 "last_checkin_time": datetime.fromtimestamp(0.0),
                 "favor": 0,
-                "pool_name": "搅动潮汐之剑复刻（斯卡蒂UP）"
+                "no6_times": 0
             },
             qq=qq
         )
@@ -96,7 +92,7 @@ class UserBox:
 class Pool:
     @classmethod
     async def get_pool(cls, pool_id: int) -> Optional[PoolModel]:
-        return await PoolModel.get_or_none(index=pool_id)
+        return await PoolModel.get_or_none(id=pool_id)
 
     @classmethod
     async def get_pools(cls) -> List[PoolModel]:
@@ -104,33 +100,51 @@ class Pool:
 
     @classmethod
     async def spider_pool(cls):
-        url = "https://wiki.biligame.com/arknights/%E5%B9%B2%E5%91%98%E5%AF%BB%E8%AE%BF%E6%A8%A1%E6%8B%9F%E5%99%A8"
+        url = "https://prts.wiki/w/%E5%8D%A1%E6%B1%A0%E4%B8%80%E8%A7%88/%E9%99%90%E6%97%B6%E5%AF%BB%E8%AE%BF"
+        pools:List[PoolModel] = []
         async with httpx.AsyncClient() as client:
             rep = await client.get(url)
             html: etree._Element = etree.HTML(rep.text, parser=None)
-            gyxf_up_list = html.xpath('//*[@class="gyxf_up_list"]')
-            if len(gyxf_up_list) > 0:
-                await PoolModel.filter().delete()
-            for i in gyxf_up_list:
-                title = i.xpath("./@data-title")
-                if len(title) > 0:
-                    title = title[0]
-                pickup_4 = i.xpath(
-                    './/*[text()="★★★★"]/..//*[@class="gy_upface"]//text()')
-                pickup_5 = i.xpath(
-                    './/*[text()="★★★★★"]/..//*[@class="gy_upface"]//text()')
-                pickup_6 = i.xpath(
-                    './/*[text()="★★★★★★"]/..//*[@class="gy_upface"]//text()')
+            index = 0
+            for tr in html.xpath("//table/tbody/tr"):
+                td_list = tr.xpath("./td")
+                if len(td_list)!=4:
+                    continue
+                index+=1
+                name:str = td_list[0].xpath(".//text()")[0]
+                if name.endswith("复刻") or name.endswith("返场") or name.startswith("【跨年欢庆寻访】"):
+                    continue
+                pickup_6 = []
+                pickup_5 = []
+                pickup_4 = []
+                for up in td_list[2:]:
+                    for a in up.xpath(".//a"):
+                        up_name = a.xpath("./@title")[0]
+                        up_rarity = int(a.xpath(".//img[@id='levlicon']/@data-src")[0][-5:-4])
+                        if up_rarity==5:
+                            pickup_6.append(up_name)
+                        elif up_rarity==4:
+                            pickup_5.append(up_name)
+                        elif up_rarity==3:
+                            pickup_4.append(up_name)
                 pool = PoolModel(
-                    name=title,
+                    id=index,
+                    name=name,
                     pickup_4=pickup_4,
                     pickup_5=pickup_5,
                     pickup_6=pickup_6
                 )
-                await pool.save()
+                pools.append(pool)
+            if len(pools)>10:
+                await PoolModel.all().delete()
+                await PoolModel.bulk_create(pools)
 
     @classmethod
     async def on_update(cls, update_file: Dict[str, str]):
         if "gamedata/excel/gacha_table.json" in update_file:
             await cls.spider_pool()
+
 Downloader.register_observer(Pool)
+@scheduler.scheduled_job("cron", minute=20)
+async def auto_update():
+    await Pool.spider_pool()
